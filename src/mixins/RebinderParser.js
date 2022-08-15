@@ -4,16 +4,21 @@ export default function(text) {
 	const values = toAliasAndBind(strings.shift());
 	const entries = Array();
 
-	const global = detectGlobalInject(strings);
-	if (global.length) values.inject = global.join(";");
+	let global = detectGlobalInject(strings);
 
-	const backwards = strings[0].split(" ").slice(-3)[0];
-	if (backwards[0]==="bind" && backwards[1]!==values.keybind) {
+	const backwards = strings[0].split(" ").slice(-3);
+	if (backwards[0].endsWith(";bind") && backwards[1]!==values.keybind) {
 		values.backwards = backwards[1].replace(/"/g,"");
+		global = global.filter(v => v!==`bind ${values.backwards}` && v!==`bind ${values.keybind}`);
 	}
+	if (global.length) values.injection = global.join(";");
 
 	const avgCmds = strings
-		.map(s => s.split(";").filter(Boolean).length-1)
+		.map(s => s
+			.split(";")
+			.filter(Boolean)
+			.filter(s => !global.includes(s)).length - values.backwards ? 1 : 2
+		)
 		.reduce((a,b) => a+b, 0) / strings.length;
 
 	for (let i=0;i<strings.length;i++) {
