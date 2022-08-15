@@ -34,6 +34,7 @@
       <MainInput :value="values.keybind" @onInput="setValue" id="keybind" label="Keybind" placeholder="x" description="The key to press to activate toggle" :required="true" />
       <MainInput :value="values.alias" @onInput="setValue" id="alias" label="Alias" placeholder="do-thing" description="The name you want to use on the aliases, which get an auto-number appended at the end." :required="true" />
       <MainInput :value="values.injection" @onInput="setValue" id="injection" label="Optional: Global injection" placeholder='say_team "next position!"' description='An identical string to add after each command, like say_team "next position!"' />
+      <MainInput :value="values.backwards" @onInput="setValue" id="backwards" label="Optional: Backwards Key" placeholder="y" description="Add another key to go to previous backwards in the loop as well" />
     </section>
 
     <section id="commands-container">
@@ -105,6 +106,7 @@ export default {
         alias: undefined,
         injection: undefined,
         parser: undefined,
+        backwards: undefined,
       },
       counter: 0,
       entries: new Map(),
@@ -178,9 +180,9 @@ export default {
         if (injection && !injection.endsWith(";")) injection += ";";
 
         if (i === this.entries.size-1) {
-          string += `Alias "${this.values.alias}${i}" "${command};${inject?inject:""}${injection? injection: ""}bind ${this.values.keybind} "${this.values.alias}0";${minified?"":"\n"}`;
+          string += `Alias "${this.values.alias}${i}" "${command};${inject?inject:""}${injection? injection: ""}bind ${this.values.keybind} "${this.values.alias}0";${this.backwards(i, this.entries.size-1)}${minified?"":"\n"}`;
         } else {
-          string += `Alias "${this.values.alias}${i}" "${command};${inject?inject:""}${injection? injection: ""}bind ${this.values.keybind} "${this.values.alias}${i+1}";`;
+          string += `Alias "${this.values.alias}${i}" "${command};${inject?inject:""}${injection? injection: ""}bind ${this.values.keybind} "${this.values.alias}${i+1}";${this.backwards(i, this.entries.size-1)}`;
         }
 
         strings.push(string);
@@ -188,6 +190,10 @@ export default {
       }
 
       this.$refs.output.textContent = strings.join(minified ? "":"\n");
+    },
+    backwards(index, max) {
+      if (!this.values.backwards) return "";
+      return `bind ${this.values.backwards} "${this.values.alias}${index ? index-1 : max}"`
     },
     /**
      * Handles all key presses for shortcuts
