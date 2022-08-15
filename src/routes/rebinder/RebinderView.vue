@@ -1,6 +1,12 @@
 <template>
   <main class="container">
 
+    <section class="error box" v-if="error.show">
+      <h1>{{error.title}}</h1>
+      <p>{{error.text}}</p>
+      <code>{{error.error}}</code>
+    </section>
+
     <section class="row">
       <div class="box">
 
@@ -109,6 +115,12 @@ export default {
   data() {
 
     return {
+      error: {
+        show: false,
+        title: undefined,
+        text: undefined,
+        error: undefined,
+      },
       values: {
         keybind: undefined,
         alias: undefined,
@@ -181,44 +193,79 @@ export default {
         && !line?.inject?.value
         && !line?.comment?.value;
     },
+    missingMandatory() {
+      if (this.lineEmpty(this.entries.values().next().value)) {
+        this.error.title = "No Input";
+        this.error.text = "There's no commands defined — write some into the fields below."
+        this.error.error = undefined;
+        this.error.show = true;
+        return true;
+      }
+
+      if (!this.values.keybind) {
+        this.error.title = "Missing Keybind";
+        this.error.text = "You must define a keybind. Fill in the Keybind field below."
+        this.error.error = undefined;
+        this.error.show = true;
+        return true;
+      }
+
+      if (!this.values.alias) {
+        this.error.title = "Missing Alias";
+        this.error.text = "You must define an alias for this script. Fill in the Alias field below."
+        this.error.error = undefined;
+        this.error.show = true;
+        return true;
+      }
+
+      return false;
+    },
     /**
      * Generates the keybind loop and displays it in the output box
      * @param {Boolean} [minified=false] Minify the output. Omits comments and newlines.
      */
     generate(minified=false) {
-      if (this.lineEmpty(this.entries.values().next().value)) return;
+      this.error.show = false;
+      if (this.missingMandatory()) return;
 
-      const strings = [`bind ${this.values.keybind} "${this.values.alias}0";${minified?"":"\n"}`];
-      let i = this.counter = 0;
+      try {
+        const strings = [`bind ${this.values.keybind} "${this.values.alias}0";${minified?"":"\n"}`];
+        let i = this.counter = 0;
 
-      for (const [,entry] of this.entries) {
-        let command = entry.command.value;
-        let inject = entry.inject.value;
-        const comment = entry.comment.value;
+        for (const [,entry] of this.entries) {
+          let command = entry.command.value;
+          let inject = entry.inject.value;
+          const comment = entry.comment.value;
 
-        let string = "";
+          let string = "";
 
-        if (!minified && comment) {
-          if (i) string = "\n";
-          string += "// "+comment.trim()+"\n";
+          if (!minified && comment) {
+            if (i) string = "\n";
+            string += "// "+comment.trim()+"\n";
+          }
+          if (command.endsWith('"')) command = command.slice(0,-1);
+          if (inject && !inject.endsWith(";")) inject += ";";
+
+          let injection = this.values.injection;
+          if (injection && !injection.endsWith(";")) injection += ";";
+
+          if (i === this.entries.size-1) {
+            string += `Alias "${this.values.alias}${i}" "${command};${inject?inject:""}${injection? injection: ""}bind ${this.values.keybind} "${this.values.alias}0";${this.backwards(i, this.entries.size-1)}${minified?"":"\n"}`;
+          } else {
+            string += `Alias "${this.values.alias}${i}" "${command};${inject?inject:""}${injection? injection: ""}bind ${this.values.keybind} "${this.values.alias}${i+1}";${this.backwards(i, this.entries.size-1)}`;
+          }
+
+          strings.push(string);
+          i++;
         }
-        if (command.endsWith('"')) command = command.slice(0,-1);
-        if (inject && !inject.endsWith(";")) inject += ";";
 
-        let injection = this.values.injection;
-        if (injection && !injection.endsWith(";")) injection += ";";
-
-        if (i === this.entries.size-1) {
-          string += `Alias "${this.values.alias}${i}" "${command};${inject?inject:""}${injection? injection: ""}bind ${this.values.keybind} "${this.values.alias}0";${this.backwards(i, this.entries.size-1)}${minified?"":"\n"}`;
-        } else {
-          string += `Alias "${this.values.alias}${i}" "${command};${inject?inject:""}${injection? injection: ""}bind ${this.values.keybind} "${this.values.alias}${i+1}";${this.backwards(i, this.entries.size-1)}`;
-        }
-
-        strings.push(string);
-        i++;
+        this.$refs.output.textContent = strings.join(minified ? "":"\n");
+      } catch(err) {
+        this.error.title = "Error Generating";
+        this.error.text = "An unknown error occurred when trying to generate the output."
+        this.error.error = err.toString();
+        this.error.show = true;
       }
-
-      this.$refs.output.textContent = strings.join(minified ? "":"\n");
     },
     backwards(index, max) {
       if (!this.values.backwards) return "";
@@ -255,23 +302,45 @@ export default {
      * @param {('position'|'rebinder')} parserId ID of the parser to apply to the cached file
      */
     parseFile(parserId) {
+      this.error.show = false;
       const reader = new FileReader();
       let newEntries = Array();
       reader.readAsText(this.file, "UTF-8");
 
+      reader.onerror = err => {
+        this.error.title = "Could Not Read";
+        this.error.text = `Something went wrong trying to read the file.`
+        this.error.error = err.toString();
+        this.error.show = true;
+      }
+
       reader.onload = e => {
         switch(parserId) {
           case "position": {
-            const result = PositionParser(e.target.result);
-            newEntries.push(...result.entries);
+            try {
+              const result = PositionParser(e.target.result);
+              newEntries.push(...result.entries);
+            } catch(err) {
+              this.error.title = "Could Not Parse";
+              this.error.text = `Something went wrong trying to parse the file. Is the file a CS:GO Console output?`
+              this.error.error = err.toString();
+              this.error.show = true;
+            }
             break;
           }
           case "rebinder": {
-            const result = RebinderParser(e.target.result);
-            for (const key in result.values) {
-              this.setValue({key, value: result.values[key]});
+            try {
+              const result = RebinderParser(e.target.result);
+              for (const key in result.values) {
+                this.setValue({key, value: result.values[key]});
+              }
+              newEntries.push(...result.entries);
+            } catch(err) {
+              this.error.title = "Could Not Parse";
+              this.error.text = `Something went wrong trying to parse the file. Is the file a CS:GO Rebind Tool output?`
+              this.error.error = err.toString();
+              this.error.show = true;
             }
-            newEntries.push(...result.entries);
             break;
           }
           default:
@@ -348,5 +417,12 @@ dt {
 }
 button:hover {
   cursor: pointer;
+}
+.error p, .error h1 {
+  margin: .5rem;
+}
+.error {
+  background: rgba(255, 0, 0, 0.16);
+  border-color: rgba(255, 0, 0, 0.7);
 }
 </style>
