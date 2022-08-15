@@ -1,8 +1,5 @@
 export default function(text) {
-	const strings = text.split("\n")
-		.filter(Boolean)
-		.filter(s => /^[\r\n]$/.test(s)===false)
-		.map(v => v.replace(/[\r\n]/g, ""));
+	const strings = isMinified(text) ? splitMinifiedLines(text) : splitLines(text);
 
 	const values = toAliasAndBind(strings.shift());
 	const entries = Array();
@@ -29,6 +26,29 @@ export default function(text) {
 		values,
 		entries
 	};
+}
+
+function isMinified(text) {
+	return text.split(/[\n\r]/).length===1;
+}
+
+function splitMinifiedLines(text) {
+	const lines = text.split(";");
+	const container = [lines.shift()+";"];
+	container.push(
+		...lines
+			.join(";")
+			.split("Alias ")
+			.filter(Boolean)
+			.map(l => "Alias "+l)
+	);
+	return container;
+}
+function splitLines(text) {
+	return text.split("\n")
+		.filter(Boolean)
+		.filter(s => /^[\r\n]$/.test(s)===false)
+		.map(v => v.replace(/[\r\n]/g, ""));
 }
 
 function toAliasAndBind(line) {
