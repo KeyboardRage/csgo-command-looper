@@ -132,7 +132,8 @@ export default {
      * Creates a new line
      */
     newLine() {
-      const id = this.counter++;
+      this.counter++;
+      const id = Math.random().toString(16).slice(2);
       this.entries.set(id, {
         id,
         command: {
@@ -177,7 +178,7 @@ export default {
      * @param {Boolean} [minified=false] Minify the output. Omits comments and newlines.
      */
     generate(minified=false) {
-      if (this.lineEmpty(this.entries.get(0))) return;
+      if (this.lineEmpty(this.entries.values().next().value)) return;
 
       const strings = [`bind ${this.values.keybind} "${this.values.alias}0";${minified?"":"\n"}`];
       let i = this.counter = 0;
@@ -261,14 +262,15 @@ export default {
         }
 
         // When loading file and first item is blank, remove first item
-        if(this.lineEmpty(this.entries.get(0))) {
+        if(this.lineEmpty(this.entries.values().next().value)) {
           this.entries = new Map();
           this.counter = 0;
         }
 
         // Add new entries to existing map
         newEntries.map(e => {
-          e.id = this.counter++;
+          e.id = Math.random().toString(16).slice(2);
+          this.counter++;
           this.entries.set(e.id, e);
         });
       }
