@@ -87,20 +87,20 @@ function lineToArgs(line, nextLine, global, avgCmds, hasBackwards) {
 
 	let args = line
 		.split(" ")
-		.slice(2, hasBackwards ? -2 : -3) // Remove first 'Alias X' + last + consider backwards bind
+		.slice(2, hasBackwards ? -3 : -2) // Remove first 'Alias X' + last + consider backwards bind
 		.join(" ")
 		.slice(1) // Remove first "
-		.split(" ")
+		.split(" ");
 
 	// Remove last XXXXX;bind
 	args[args.length-1] = args[args.length-1]
-		.replace(";bind", "")
+		.replace(";bind", "");
 
 	// Remove global injections
 	args = args
 		.join(" ")
 		.split(";")
-		.filter(w => !global.includes(w))
+		.filter(w => !global.includes(w));
 
 	// Split Inject and Command based on average args per line
 	entry.command.value = args.slice(0, Math.ceil(avgCmds/2)).join(";");
