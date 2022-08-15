@@ -121,9 +121,16 @@ export default {
     window.removeEventListener("keydown", this.keyHandler);
   },
   methods: {
+    /**
+     * Set arbitrary key-value
+     * @param {{key:String, value:*}} data
+     */
     setValue(data) {
       this.values[data.key] = data.value;
     },
+    /**
+     * Creates a new line
+     */
     newLine() {
       const id = this.counter++;
       this.entries.set(id, {
@@ -147,15 +154,28 @@ export default {
         children[children.length-1].querySelector(".focus").focus();
       });
     },
+    /**
+     * Remove a line by its ID
+     * @param {String} entryId
+     */
     removeEntry(entryId) {
       this.entries.delete(entryId);
       if (!this.entries.size) return this.newLine();
     },
+    /**
+     * Checks if a Command Line is completely empty
+     * @param {Object} line
+     * @returns {boolean}
+     */
     lineEmpty(line) {
       return !line?.command?.value
         && !line?.inject?.value
         && !line?.comment?.value;
     },
+    /**
+     * Generates the keybind loop and displays it in the output box
+     * @param {Boolean} [minified=false] Minify the output. Omits comments and newlines.
+     */
     generate(minified=false) {
       if (this.lineEmpty(this.entries.get(0))) return;
 
@@ -214,9 +234,17 @@ export default {
         return this.generate();
       }
     },
+    /**
+     * Cache the file from file data source
+     * @param event
+     */
     setFile(event) {
       this.file = event.target.files[0];
     },
+    /**
+     * Parses any file in the file data source cache, and appends any resulting entries
+     * @param {('position')} parserId ID of the parser to apply to the cached file
+     */
     parseFile(parserId) {
       const reader = new FileReader();
       let newEntries = Array();
