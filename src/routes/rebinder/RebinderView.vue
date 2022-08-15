@@ -12,7 +12,7 @@
               name="data-source"
               id="data-source"
               @input="setFile"
-              accept=".log, .txt, .html"
+              accept=".log, .txt"
           >
         </div>
 
