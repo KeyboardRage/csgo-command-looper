@@ -67,15 +67,15 @@ function detectGlobalInject(lines) {
 function lineToArgs(line, nextLine, global, avgCmds, hasBackwards) {
 	const entry = {
 		command: {
-			placeholder: "",
+			placeholder: "do_thing 1",
 			value: undefined,
 		},
 		comment: {
-			placeholder: "",
+			placeholder: "Does X thing",
 			value: undefined,
 		},
 		inject: {
-			placeholder: "",
+			placeholder: 'say_team "did X thing"',
 			value: undefined
 		},
 	};
