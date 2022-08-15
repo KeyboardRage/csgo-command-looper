@@ -12,18 +12,25 @@
               name="data-source"
               id="data-source"
               @input="setFile"
-              accept=".log, .txt"
+              accept=".log, .txt, .cfg"
           >
         </div>
 
         <div v-if="file">
           <h3>Select parser</h3>
-          <div class="row">
+          <div class="row close-row">
             <SelectCard
                 @click.stop="parseFile('position')"
                 label="Position"
                 id="position"
-                description="Reads output of 'getpos' command + includes any team chatbox message if it's in the line below it." />
+                description="Reads output of 'getpos' command + includes any team chatbox message if it's in the line below it."
+            />
+            <SelectCard
+                @click.stop="parseFile('rebinder')"
+                label="Rebinder Output"
+                id="rebinder"
+                description="Load an output from this tool into the tool (load saved loops)"
+            />
           </div>
         </div>
 
@@ -94,6 +101,7 @@ import SelectCard from "@/components/inputs/SelectCard";
 
 // Parser
 import PositionParser from "@/mixins/PositionParser";
+import RebinderParser from "@/mixins/RebinderParser";
 
 export default {
   name: "RebinderView",
@@ -244,7 +252,7 @@ export default {
     },
     /**
      * Parses any file in the file data source cache, and appends any resulting entries
-     * @param {('position')} parserId ID of the parser to apply to the cached file
+     * @param {('position'|'rebinder')} parserId ID of the parser to apply to the cached file
      */
     parseFile(parserId) {
       const reader = new FileReader();
@@ -254,7 +262,16 @@ export default {
       reader.onload = e => {
         switch(parserId) {
           case "position": {
-            newEntries.push(...PositionParser(e.target.result));
+            const result = PositionParser(e.target.result);
+            newEntries.push(...result.entries);
+            break;
+          }
+          case "rebinder": {
+            const result = RebinderParser(e.target.result);
+            for (const key in result.values) {
+              this.setValue({key, value: result.values[key]});
+            }
+            newEntries.push(...result.entries);
             break;
           }
           default:
@@ -298,6 +315,9 @@ dt {
   display: flex;
   justify-content: space-between;
   gap: 2rem;
+}
+.close-row {
+  justify-content: start;
 }
 
 #output-container,

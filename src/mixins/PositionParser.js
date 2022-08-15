@@ -28,7 +28,9 @@ export default function(inputText, container=Array()) {
 		container.push(item);
 	}
 
-	return container;
+	return {
+		entries: container
+	};
 }
 
 function extractMsg(line) {
