@@ -8,7 +8,7 @@
         :id="id"
         :placeholder="placeholder"
         :required="required"
-        :value="currentValue"
+        :value="value"
         @input="input"
     >
   </div>
@@ -42,17 +42,12 @@ export default {
       type: [String,undefined]
     },
   },
-  data() {
-    return {
-      currentValue: this.value,
-    }
-  },
   methods: {
     input(event) {
       this.$emit("onInput", {key: this.id, value: event.target.value});
       this.currentValue = event.target.value;
     }
-  }
+  },
 }
 </script>
 
